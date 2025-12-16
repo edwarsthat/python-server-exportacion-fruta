@@ -5,13 +5,9 @@ import json
 import traceback
 # import random
 from concurrent import futures
-from src.handlers.modelos import handlers_modelos
-
+from src.routes import MODELOS_ROUTES
 HOST = '127.0.0.1' 
 PORT = 65432  
-
-#base de datos init
-from src.DB.mongoDB.config.init import check_mongo_is_running
 
 
 
@@ -42,20 +38,20 @@ def tcpServer():
 
 
                             data_str = data.decode().strip()
-                            print(f"📥 Mensaje recibido: {repr(data_str)}")
+                            # print(f"📥 Mensaje recibido: {repr(data_str)}")
                             # 💥 RESPONDER AL PING
                             if data_str == "PING":
                                 conn.sendall(b"PONG\n")
                                 continue
 
                             data_obj = json.loads(data_str)
-
                             action = data_obj.get("action")
                             if not action:
                                 raise ValueError("Campo 'action' faltante")
 
-                            if action in handlers_modelos:
-                                response = handlers_modelos[action](data_obj)
+                            if action in MODELOS_ROUTES:
+                                print("action", action)
+                                response = MODELOS_ROUTES[action](data_obj)
                                 response_str = json.dumps(response)
                                 conn.sendall(response_str.encode())
                             else:
@@ -84,6 +80,8 @@ def tcpServer():
                                 "details": str(e),
                                 "trace": traceback.format_exc()
                             }
+                            print(f"❌ Error en handler: {e}")
+                            print(traceback.format_exc())
 
                             if isinstance(e, ConnectionResetError):
                                 print(f"🔌 Conexión reseteada por el cliente: {e}")
@@ -101,6 +99,5 @@ def tcpServer():
 
 if __name__ == '__main__':
     # load_dotenv()
-    check_mongo_is_running()
     # serve()
     tcpServer()
