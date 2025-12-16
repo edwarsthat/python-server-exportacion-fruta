@@ -1,5 +1,6 @@
-from src.utils.files import leer_archivo
-
+from src.utils.pdf_utils import pdf_to_images
+from src.utils.image_utils import preprocess_for_ocr
+import cv2
 import json
 
 def validar_cedula(envelope):
@@ -10,19 +11,18 @@ def validar_cedula(envelope):
         if not data_str:
             print("❌ No hay data en el request")
             return False
+        
+        data = json.loads(data_str)
+        filePath = "../" + data.get("urlIdentificacion")
 
-        url_identificacion = envelope.get("urlIdentificacion")
-        print(f"📂 Intentando leer: {url_identificacion}")
+        print(f"📂 Intentando leer: {filePath}")
 
-        file_content = leer_archivo(url_identificacion)
+        imagen = pdf_to_images(filePath, 300, None)
+        img_processed = preprocess_for_ocr(imagen[0])
 
-        if isinstance(file_content, bytes):
-            print(f"✅ Archivo leído correctamente. Tamaño: {len(file_content)} bytes")
-            print(f"Tipo de dato: {type(file_content)}")
-            return True
-        else:
-            print("❌ Error: No se pudo leer el archivo (retornó None)")
-            return False
+        cv2.imshow("Pagina 1", img_processed)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
         
     except Exception as e:
         print(f"❌ Excepción en validar_cedula: {e}")

@@ -2,3 +2,5 @@ pandas
 joblib
 scikit-learn
 python-dotenv
+opencv-python
+PyMuPDF
