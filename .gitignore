@@ -1,4 +1,4 @@
 # Ignorar los módulos de python
 venv/
-
+.env
 __pycache__/

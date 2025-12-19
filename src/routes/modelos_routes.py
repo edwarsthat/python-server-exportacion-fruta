@@ -1,8 +1,6 @@
-from src.controller.validadcion_documentos_controller import validar_cedula
+from src.controller import VALIDAR_DOCUMENTOS_ROUTES
 
-# Definimos las rutas específicas para este módulo
-# Clave: Nombre de la acción (action)
-# Valor: Función del controlador
+# Combinamos rutas
 MODELOS_ROUTES = {
-    "post_talentoHumano_personal_ingresoPersonal": validar_cedula,
+    **VALIDAR_DOCUMENTOS_ROUTES,
 }

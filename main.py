@@ -3,12 +3,15 @@ import time
 import socket
 import json
 import traceback
+import os
+from dotenv import load_dotenv
 # import random
-from concurrent import futures
+# from concurrent import futures
 from src.routes import MODELOS_ROUTES
-HOST = '127.0.0.1' 
-PORT = 65432  
+from src.config import Config
 
+HOST = Config.HOST 
+PORT = Config.PORT 
 
 
 def tcpServer():
@@ -38,7 +41,7 @@ def tcpServer():
 
 
                             data_str = data.decode().strip()
-                            # print(f"📥 Mensaje recibido: {repr(data_str)}")
+                            print(f"📥 Mensaje recibido: {repr(data_str)}")
                             # 💥 RESPONDER AL PING
                             if data_str == "PING":
                                 conn.sendall(b"PONG\n")
@@ -46,21 +49,26 @@ def tcpServer():
 
                             data_obj = json.loads(data_str)
                             action = data_obj.get("action")
-                            if not action:
-                                raise ValueError("Campo 'action' faltante")
+                            params = data_obj.get('data', {})
 
+                            # Enrutamos la petición
                             if action in MODELOS_ROUTES:
-                                print("action", action)
-                                response = MODELOS_ROUTES[action](data_obj)
-                                response_str = json.dumps(response)
-                                conn.sendall(response_str.encode())
+                                handler = MODELOS_ROUTES[action]
+                                
+                                # Si params es un diccionario, desempaquetamos. 
+                                # Si es un string u otro tipo, lo pasamos como argumento único.
+                                if isinstance(params, dict):
+                                    response = handler(**params)
+                                else:
+                                    response = handler(params)
                             else:
-                                error_msg = {
-                                    "status": 700,
-                                    "message": f"Acción desconocida: {action}",
-                                    "data": {}
+                                response = {
+                                    "success": False,
+                                    "error": f"Acción no encontrada: {action}"
                                 }
-                                conn.sendall(json.dumps(error_msg).encode())
+                            
+                            # Enviamos la respuesta
+                            conn.sendall(json.dumps(response).encode('utf-8'))
 
                         except socket.timeout:
                             continue  # da oportunidad a KeyboardInterrupt de ser lanzado
