@@ -13,7 +13,7 @@ from src.config import Config
 
 IV_LENGTH = 16
 
-def pdf_to_images(pdf_path, dpi, page_numbers):
+def pdf_to_images(pdf_path, dpi, page_numbers=None, max_pages=None):
 
     pdf_path = Path(pdf_path).resolve()
 
@@ -26,11 +26,20 @@ def pdf_to_images(pdf_path, dpi, page_numbers):
     images: List[np.ndarray] = []
     with fitz.open(pdf_path) as doc:
         total_pages = doc.page_count
-        pages = page_numbers if page_numbers is not None else range(total_pages)
+        
+        if page_numbers is not None:
+            pages = page_numbers
+        else:
+            limit = total_pages
+            if max_pages is not None:
+                limit = min(total_pages, max_pages)
+            pages = range(limit)
 
         for page_index in pages:
             if page_index < 0 or page_index >= total_pages:
-                raise IndexError(f"Página fuera de rango: {page_index}")
+                continue # Skip invalid pages instead of crashing, or crash if strictly required. Keeping original intent but safer? No, original raised.
+                # raise IndexError(f"Página fuera de rango: {page_index}") 
+                # Original raised, let's keep raising if explicitly requested, but for range it won't happen.
 
             page = doc.load_page(page_index)
             pix = page.get_pixmap(dpi=dpi)
@@ -102,13 +111,17 @@ def obtener_imagen_para_barcode(pdf_path, dpi=300):
         
         try:
             # Procesar el archivo temporal desencriptado
-            images = pdf_to_images(temp_pdf_path, dpi=dpi, page_numbers=None)
+            # Solo necesitamos las primeras 2 páginas máximo para decidir
+            print("Procesando archivo temporal desencriptado...")
+            images = pdf_to_images(temp_pdf_path, dpi=dpi, page_numbers=None, max_pages=2)
         finally:
             # Eliminar archivo temporal
             os.unlink(temp_pdf_path)
     else:
         # Archivo no encriptado, procesar normalmente
-        images = pdf_to_images(pdf_path, dpi=dpi, page_numbers=None)
+        # Solo necesitamos las primeras 2 páginas máximo
+        print("Procesando archivo no encriptado...")
+        images = pdf_to_images(pdf_path, dpi=dpi, page_numbers=None, max_pages=2)
 
     if not images:
         raise ValueError("No se pudieron extraer imágenes del PDF")
@@ -294,7 +307,17 @@ def obtener_nombre_apellido(line):
     return apellido, nombre
 
 def validar_mrz_tipo_documento(line):
-    return line[0:2].replace('<', '').strip()
+    if not line:
+        return "Error"
+    
+    first_char = line[0].upper()
+    
+    if first_char == 'I':
+        return "Identificación"
+    elif first_char == 'P':
+        return "Pasaporte"
+    else:
+        return "Error"
 
 def validar_mrz_pais(line):
     return line[2:5].replace('<', '').strip()

@@ -40,6 +40,8 @@ class ValidacionCedulaService:
         Returns:
             dict: Datos extraídos y validados de la cédula
         """
+
+        print("si corrio validar_cedula...")
         tesseract_path = shutil.which("tesseract")
         if not tesseract_path:
             raise RuntimeError(
@@ -58,8 +60,9 @@ class ValidacionCedulaService:
         # ============================================================
         # ESTRATEGIA 1: Intentar leer PDF417 (MÁS COMÚN EN CÉDULAS)
         # ============================================================
-
+        print("ESTRATEGIA 1: USANDO PDF417...")
         pdf417_data = leer_pdf417_zxing(original)
+        print("si corrio  pdf417_data...")
         if pdf417_data:
 
             print("✓ PDF417 detectado")
@@ -75,6 +78,7 @@ class ValidacionCedulaService:
                     "fecha_nacimiento": info_pdf417["fecha_nacimiento"],
                     "sexo": info_pdf417["sexo"],
                     "rh": info_pdf417.get("rh"),
+                    "tipoDocumento": "identificacion"
                 }
                 metodo_usado = "PDF417"
             else:
@@ -102,6 +106,7 @@ class ValidacionCedulaService:
                         "nombres": info_qr["nombres"],
                         "fecha_nacimiento": info_qr.get("fecha_nacimiento"),
                         "sexo": info_qr.get("sexo"),
+                        "tipoDocumento": "identificacion",
                     }
                     metodo_usado = "QR"
                 else:
@@ -145,7 +150,7 @@ class ValidacionCedulaService:
                 
                 datos_finales = {
                     "metodo": "MRZ-OCR",
-                    "tipo_documento": validar_mrz_tipo_documento(mrz_lines[0]),
+                    "tipoDocumento": validar_mrz_tipo_documento(mrz_lines[0]),
                     "pais": validar_mrz_pais(mrz_lines[0]),
                     "cedula": obtener_numero_identidad(mrz_lines[0]),
                     "fecha_nacimiento": obtener_fecha_nacimiento(mrz_lines[1]),
@@ -159,8 +164,15 @@ class ValidacionCedulaService:
                 print("✓ Datos extraídos del MRZ correctamente")
                 
             except Exception as e:
+                import traceback
+                traceback.print_exc()
                 print(f"✗ Error al procesar MRZ: {e}")
-                datos_finales = {"metodo": "ERROR", "error": str(e)}
+                return {
+                    "success": False,
+                    "message": f"Error interno procesando MRZ: {str(e)}",
+                    "data": None,
+                    "urlIdentificacion": url_identificacion
+                }
 
     
         if original is not None:

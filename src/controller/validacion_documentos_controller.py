@@ -48,9 +48,9 @@ class ValidarDocumentosController:
 
 
 # ✅ Instanciamos el controller UNA SOLA VEZ
-controller = ValidarDocumentosController()
+controllerValidarDocumentos = ValidarDocumentosController()
 
 # Definimos las rutas apuntando al método del controller
 VALIDAR_DOCUMENTOS_ROUTES = {
-    "validar_cedula": controller.validar_cedula,
+    "validar_cedula": controllerValidarDocumentos.validar_cedula,
 }
