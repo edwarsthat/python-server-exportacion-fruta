@@ -5,7 +5,7 @@ import numpy as np
 
 def procesar_foto_carnet(imagen_bytes: bytes, output_path=None,
                          ancho_cm=3.11, alto_cm=3.11, dpi=300,
-                         zoom_cara=1.8):
+                         zoom_cara=1.8, quitar_fondo=False):
     """
     Convierte una foto a formato carnet centrado.
 
@@ -17,6 +17,7 @@ def procesar_foto_carnet(imagen_bytes: bytes, output_path=None,
         dpi: resolución en puntos por pulgada (300 para impresión de calidad)
         zoom_cara: factor de zoom (menor = cara más grande)
                    1.5 = muy cerca, 1.8 = cerca, 2.2 = normal, 2.8 = lejos
+        quitar_fondo: si es True, intenta quitar el fondo y ponerlo blanco
 
     Returns:
         ruta de la imagen procesada si se guardó, None si hubo error
@@ -82,6 +83,30 @@ def procesar_foto_carnet(imagen_bytes: bytes, output_path=None,
 
             # Recortar imagen
             img_recortada = img[y1:y2, x1:x2]
+
+            # Quitar fondo si se solicita
+            if quitar_fondo:
+                try:
+                    mp_selfie_segmentation = mp.solutions.selfie_segmentation
+                    with mp_selfie_segmentation.SelfieSegmentation(model_selection=1) as selfie_segmentation:
+                        # Convertir a RGB para Mediapipe
+                        img_rgb_recortada = cv2.cvtColor(img_recortada, cv2.COLOR_BGR2RGB)
+                        results_seg = selfie_segmentation.process(img_rgb_recortada)
+                        
+                        # Obtener la máscara (valores > 0.4 se consideran la persona)
+                        mask = results_seg.segmentation_mask > 0.4
+                        
+                        # Suavizar la máscara
+                        mask = cv2.GaussianBlur(mask.astype(float), (5, 5), 0) > 0.5
+                        
+                        # Crear fondo blanco
+                        fondo_blanco = np.ones(img_recortada.shape, dtype=np.uint8) * 255
+                        
+                        # Aplicar la máscara
+                        mask_3d = np.stack([mask] * 3, axis=-1)
+                        img_recortada = np.where(mask_3d, img_recortada, fondo_blanco)
+                except Exception as ex:
+                    print(f"⚠️ No se pudo quitar el fondo: {ex}")
 
             # Redimensionar a tamaño carnet estándar
             img_carnet = cv2.resize(img_recortada, (ancho_carnet, alto_carnet), interpolation=cv2.INTER_LANCZOS4)

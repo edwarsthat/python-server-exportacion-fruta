@@ -24,7 +24,8 @@ class ErrorType(Enum):
     INVALID_PATH = "invalid_path"
     OTHER = "other"
 
-IV_LENGTH = 16
+IV_LENGTH = 12
+AUTH_TAG_LENGTH = 16
 
 # Directorio raíz de la aplicación (src/services -> raíz del proyecto)
 APP_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -178,28 +179,27 @@ class FileService:
 
     @classmethod
     def decrypt_buffer(cls, encrypted_buffer: bytes) -> bytes:
-        """Desencripta un buffer encriptado con AES-256-CBC."""
-        if len(encrypted_buffer) < IV_LENGTH + 16:
+        """Desencripta un buffer encriptado con AES-256-GCM."""
+        if len(encrypted_buffer) < IV_LENGTH + AUTH_TAG_LENGTH:
             raise DecryptionError("Buffer encriptado demasiado corto")
 
-        iv = encrypted_buffer[:IV_LENGTH]
-        encrypted_content = encrypted_buffer[IV_LENGTH:]
+        try:
+            # Extraer IV (12 bytes)
+            iv = encrypted_buffer[:IV_LENGTH]
+            # Extraer auth tag (16 bytes)
+            auth_tag = encrypted_buffer[IV_LENGTH:IV_LENGTH + AUTH_TAG_LENGTH]
+            # Extraer contenido encriptado
+            encrypted_content = encrypted_buffer[IV_LENGTH + AUTH_TAG_LENGTH:]
 
-        cipher = AES.new(Config.ENCRYPTION_KEY, AES.MODE_CBC, iv)
-        decrypted_padded = cipher.decrypt(encrypted_content)
+            cipher = AES.new(Config.ENCRYPTION_KEY, AES.MODE_GCM, iv)
+            
+            # Desencriptar y verificar integridad con el auth_tag
+            decrypted = cipher.decrypt_and_verify(encrypted_content, auth_tag)
+            
+            return decrypted
 
-        # Validar y remover padding PKCS7
-        padding_length = decrypted_padded[-1]
-
-        if not (1 <= padding_length <= 16):
-            raise DecryptionError("Padding inválido: archivo corrupto o clave incorrecta")
-
-        if len(decrypted_padded) < padding_length:
-            raise DecryptionError("Padding inválido: tamaño incorrecto")
-
-        # Validar que todos los bytes de padding sean correctos
-        padding_bytes = decrypted_padded[-padding_length:]
-        if not all(b == padding_length for b in padding_bytes):
-            raise DecryptionError("Padding PKCS7 inválido: archivo corrupto o clave incorrecta")
-
-        return decrypted_padded[:-padding_length]
+        except (ValueError, KeyError) as e:
+            # KeyError se lanza si la verificación del tag falla
+            raise DecryptionError(f"Error de autenticación: el archivo está corrupto o la clave es incorrecta. {str(e)}")
+        except Exception as e:
+            raise DecryptionError(f"Error inesperado al desencriptar: {str(e)}")

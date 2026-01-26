@@ -14,6 +14,7 @@ class ProcesamientoImagenService:
         self.alto_cm = 3.11
         self.dpi = 300
         self.zoom_cara = 2
+        self.quitar_fondo = True
 
     def procesar_foto_carnet_service(self, url_img: str):
         try:
@@ -58,7 +59,8 @@ class ProcesamientoImagenService:
                 ancho_cm=self.ancho_cm,
                 alto_cm=self.alto_cm,
                 dpi=self.dpi,
-                zoom_cara=self.zoom_cara
+                zoom_cara=self.zoom_cara,
+                quitar_fondo=self.quitar_fondo
             )
 
             if result_path is not None:
