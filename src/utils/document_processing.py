@@ -135,6 +135,10 @@ def leer_pdf417_zxing(img):
 
 
 def extraer_datos_cedula_pdf417(raw):
+    print("=" * 80)
+    print("RAW COMPLETO (primeros 500 chars):")
+    print(repr(raw[:500]))
+    print("=" * 80)
 
     # Reemplazar <NUL> y caracteres nulos reales por pipe
     s = raw.replace("<NUL>", "|").replace("\x00", "|")
@@ -142,14 +146,22 @@ def extraer_datos_cedula_pdf417(raw):
     # Limpiar pipes múltiples
     s = re.sub(r"\|+", "|", s)
 
+    print("STRING LIMPIO (primeros 300 chars):")
+    print(repr(s[:300]))
+    print("=" * 80)
+
     # Dividir por pipes
     parts = [p.strip() for p in s.split("|") if p.strip()]
+    print(f"PARTES EXTRAÍDAS: {parts[:20]}")
+    print("=" * 80)
 
     # 1) Cédula: primer número de 8-10 dígitos
     cedula = next((p for p in parts if re.fullmatch(r"\d{8,10}", p)), None)
+    print(f"Cédula: {cedula}")
 
     # 2) Buscar palabras que sean SOLO letras mayúsculas (apellidos y nombres)
     letras = [p for p in parts if re.fullmatch(r"[A-ZÁÉÍÓÚÑ]+", p) and len(p) >= 3]
+    print(f"Palabras de solo letras: {letras}")
 
     apellidos = None
     nombres = None
@@ -164,6 +176,8 @@ def extraer_datos_cedula_pdf417(raw):
     elif len(letras) == 1:
         apellidos = letras[0]
 
+    print(f"Apellidos: {apellidos}")
+    print(f"Nombres: {nombres}")
 
     # 3) Sexo y fecha de nacimiento
     sexo = None
@@ -175,12 +189,16 @@ def extraer_datos_cedula_pdf417(raw):
         sexo = sexo_fecha_match.group(1)
         fecha_nacimiento = sexo_fecha_match.group(2)
 
+    print(f"Sexo: {sexo}, Fecha: {fecha_nacimiento}")
 
     # 4) RH
     rh = None
     rh_match = re.search(r"(AB|A|B|O)[+-]", raw)
     if rh_match:
         rh = rh_match.group(0)
+
+    print(f"RH: {rh}")
+    print("=" * 80)
 
     return {
         "cedula": cedula,

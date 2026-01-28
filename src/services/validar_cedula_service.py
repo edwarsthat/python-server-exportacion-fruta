@@ -81,6 +81,7 @@ class ValidacionCedulaService:
                     "tipoDocumento": "identificacion"
                 }
                 metodo_usado = "PDF417"
+
             else:
                 print("⚠ PDF417 detectado pero datos incompletos")
         else:
@@ -174,7 +175,9 @@ class ValidacionCedulaService:
                     "urlIdentificacion": url_identificacion
                 }
 
-    
+        print("original", original)
+        print("metodo_usado", metodo_usado)
+        print("datos_finales", datos_finales)
         if original is not None:
             print("PAth: ", url_identificacion)
             if metodo_usado:
