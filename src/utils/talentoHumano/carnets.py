@@ -1,6 +1,9 @@
 import cv2
 import mediapipe as mp
 import numpy as np
+from rembg import remove
+from PIL import Image
+import io
 
 
 def procesar_foto_carnet(imagen_bytes: bytes, output_path=None,
@@ -87,24 +90,18 @@ def procesar_foto_carnet(imagen_bytes: bytes, output_path=None,
             # Quitar fondo si se solicita
             if quitar_fondo:
                 try:
-                    mp_selfie_segmentation = mp.solutions.selfie_segmentation
-                    with mp_selfie_segmentation.SelfieSegmentation(model_selection=1) as selfie_segmentation:
-                        # Convertir a RGB para Mediapipe
-                        img_rgb_recortada = cv2.cvtColor(img_recortada, cv2.COLOR_BGR2RGB)
-                        results_seg = selfie_segmentation.process(img_rgb_recortada)
-                        
-                        # Obtener la máscara (valores > 0.4 se consideran la persona)
-                        mask = results_seg.segmentation_mask > 0.4
-                        
-                        # Suavizar la máscara
-                        mask = cv2.GaussianBlur(mask.astype(float), (5, 5), 0) > 0.5
-                        
-                        # Crear fondo blanco
-                        fondo_blanco = np.ones(img_recortada.shape, dtype=np.uint8) * 255
-                        
-                        # Aplicar la máscara
-                        mask_3d = np.stack([mask] * 3, axis=-1)
-                        img_recortada = np.where(mask_3d, img_recortada, fondo_blanco)
+                    # Convertir de BGR (OpenCV) a RGB (PIL)
+                    img_pil = Image.fromarray(cv2.cvtColor(img_recortada, cv2.COLOR_BGR2RGB))
+
+                    # Quitar fondo con rembg (devuelve RGBA)
+                    img_sin_fondo = remove(img_pil)
+
+                    # Crear fondo blanco y pegar la imagen sin fondo
+                    fondo_blanco = Image.new("RGB", img_sin_fondo.size, (255, 255, 255))
+                    fondo_blanco.paste(img_sin_fondo, mask=img_sin_fondo.split()[3])
+
+                    # Convertir de vuelta a BGR (OpenCV)
+                    img_recortada = cv2.cvtColor(np.array(fondo_blanco), cv2.COLOR_RGB2BGR)
                 except Exception as ex:
                     print(f"⚠️ No se pudo quitar el fondo: {ex}")
 
