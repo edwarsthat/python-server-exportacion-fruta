@@ -1,0 +1,12 @@
+services:
+  python-server:
+    build: .
+    ports:
+      - "65432:65432"
+    env_file:
+      - .env
+    environment:
+      - HOST=0.0.0.0
+    volumes:
+      - ./uploads:/app/uploads
+    restart: unless-stopped
