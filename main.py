@@ -50,6 +50,7 @@ def tcpServer():
                             data_obj = json.loads(data_str)
                             action = data_obj.get("action")
                             params = data_obj.get('data', {})
+                            print(f"🎯 action={action} | params={repr(params)} | tipo={type(params).__name__}")
 
                             # Enrutamos la petición
                             if action in MODELOS_ROUTES:

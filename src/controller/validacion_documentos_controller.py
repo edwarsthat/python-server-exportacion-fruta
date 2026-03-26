@@ -31,6 +31,7 @@ class ValidarDocumentosController:
             if not url_identificacion:
                 url_identificacion = envelope.get("data")
 
+            print(url_identificacion)
             if not url_identificacion:
                 print("❌ No se encontró la ruta del PDF (urlIdentificacion o data)")
                 return {"success": False, "error": "Ruta de archivo no proporcionada"}
