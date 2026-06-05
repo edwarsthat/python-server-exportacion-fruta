@@ -10,9 +10,12 @@ RUN apt-get update && apt-get install -y \
     libxext6 \
     libxrender1 \
     libgomp1 \
+    libxcb1 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
+
+RUN pip install --upgrade pip==26.1.2 wheel==0.46.2
 
 # Instalar dependencias Python primero (aprovecha el cache de Docker)
 COPY requirements.txt .
